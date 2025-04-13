@@ -17,7 +17,7 @@ import { useLogin } from "@/app/(public)/login/hooks/useLogin";
 // Define form schema with validation
 
 export default function Home() {
-  const { form, onSubmit } = useLogin();
+  const { form, onSubmit, loginError } = useLogin();
 
   return (
     <div className={"flex bg-[#F6F1EB] justify-center items-center h-screen"}>
@@ -26,6 +26,11 @@ export default function Home() {
           <img src={"/assets/images/logo.png"} alt={"logo"} />
         </CardHeader>
         <CardContent>
+          {loginError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+              {loginError}
+            </div>
+          )}
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}

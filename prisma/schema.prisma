@@ -12,7 +12,6 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 model User {
   id                Int       @id @default(autoincrement())
   fullName          String
@@ -20,6 +19,19 @@ model User {
   password          String
   emailVerified     Boolean   @default(false)
   emailVerifiedTime DateTime?
+  verificationToken String?
+  tokenExpiry       DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+  passwordReset     PasswordReset?
+
+}
+model PasswordReset {
+  id        String   @id @default(cuid())
+  token     String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
