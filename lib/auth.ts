@@ -41,9 +41,24 @@ export const authOptions: NextAuthOptions = {
         return {
           id: `${existingUser.id}`,
           email: existingUser.email,
-          verified: existingUser.emailVerified,
+          emailVerified: existingUser.emailVerified,
         };
       },
     }),
   ],
+
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.emailVerified = user.emailVerified;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.emailVerified = token.emailVerified;
+      }
+      return session;
+    },
+  },
 };

@@ -2,7 +2,7 @@
 import { RegisterInterface } from "@/app/(public)/signup/interfaces/registerInterface";
 import { UserInterface } from "@/types/user/type";
 import { db } from "@/lib/db";
-import { hash } from "bcrypt";
+import { hash } from "bcryptjs";
 import { generateVerificationToken } from "@/lib/tokens"; // Create this utility
 import sendEmail from "@/lib/email.service";
 
