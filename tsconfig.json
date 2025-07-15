@@ -22,7 +22,6 @@
     "paths": {
       "@/*": ["./*"]
     },
-    // Disable type checking options
     "noImplicitAny": false,
     "noImplicitReturns": false,
     "noImplicitThis": false,

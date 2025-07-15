@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/form";
 import { useLogin } from "@/app/(public)/login/hooks/useLogin";
 
-// Define form schema with validation
 
 export default function Home() {
   const { form, onSubmit, loginError } = useLogin();

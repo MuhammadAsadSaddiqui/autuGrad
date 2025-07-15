@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import sendEmail from "@/lib/email.service";
 import { generateVerificationToken } from "@/lib/tokens";
 
-// Verify the code sent to the user
+
 export async function verifyCode({
   email,
   code,
@@ -28,7 +28,7 @@ export async function verifyCode({
       };
     }
 
-    // Update user as verified
+  
     await db.user.update({
       where: { id: user.id },
       data: {

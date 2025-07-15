@@ -7,10 +7,8 @@ import { register } from "@/app/(public)/signup/action/register";
 import { verifyCode, resendCode } from "@/app/(public)/signup/action/verify"; // Add this import
 import { useNotification } from "@/lib/context/NotificationContext";
 
-// Define the verification step type
 type VerificationStep = "signup" | "verification" | "success";
 
-// Add verification code schema
 const verificationCodeSchema = z.object({
   code: z
     .string()
@@ -25,7 +23,7 @@ const UseSignup = () => {
     useState<VerificationStep>("signup");
   const [userEmail, setUserEmail] = useState<string>("");
 
-  // Signup form schema
+  
   const formSchema = z
     .object({
       fullName: z.string().min(2, {
@@ -44,7 +42,7 @@ const UseSignup = () => {
       path: ["confirmPassword"],
     });
 
-  // Signup form
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,7 +53,7 @@ const UseSignup = () => {
     },
   });
 
-  // Verification code form
+ 
   const verifyCodeForm = useForm<z.infer<typeof verificationCodeSchema>>({
     resolver: zodResolver(verificationCodeSchema),
     defaultValues: {
@@ -63,7 +61,7 @@ const UseSignup = () => {
     },
   });
 
-  // Signup form submission
+ 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const response = await register({
@@ -84,7 +82,7 @@ const UseSignup = () => {
     }
   }
 
-  // Verification code submission
+  
   async function onVerifySubmit(
     values: z.infer<typeof verificationCodeSchema>,
   ) {
@@ -105,7 +103,7 @@ const UseSignup = () => {
     }
   }
 
-  // Resend verification code
+ 
   async function handleResendCode() {
     try {
       const response = await resendCode({

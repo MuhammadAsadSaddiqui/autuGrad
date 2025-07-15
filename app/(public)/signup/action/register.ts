@@ -21,7 +21,6 @@ export async function register({
     return { data: null, message: "User already exists", status: 409 };
   }
 
-  // Generate verification token (6-digit code)
   const verificationToken = generateVerificationToken();
 
   const hashPassword = await hash(password, 10);
@@ -31,11 +30,10 @@ export async function register({
       email,
       password: hashPassword,
       verificationToken,
-      emailVerified: false, // User starts as unverified
+      emailVerified: false, 
     },
   });
 
-  // Send verification email
   await sendVerificationEmail(email, fullName, verificationToken);
 
   return {

@@ -5,11 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react"; // Add this import
+import { useState } from "react"; 
 
 export const useLogin = () => {
   const router = useRouter();
-  const [loginError, setLoginError] = useState<string | null>(null); // Add state for error message
+  const [loginError, setLoginError] = useState<string | null>(null); 
 
   const formSchema = z.object({
     email: z.string().email({ message: "Please enter a valid email address" }),
@@ -27,7 +27,7 @@ export const useLogin = () => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setLoginError(null); // Clear previous errors
+    setLoginError(null); 
 
     const signInData = await signIn("credentials", {
       email: values.email,
@@ -38,7 +38,7 @@ export const useLogin = () => {
     console.log(signInData);
     if (signInData?.status !== 200) {
       console.log("Login failed");
-      setLoginError("Invalid email or password. Please try again."); // Set user-friendly error
+      setLoginError("Invalid email or password. Please try again."); 
     } else {
       router.push("/home");
     }

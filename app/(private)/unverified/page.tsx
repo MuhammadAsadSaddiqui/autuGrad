@@ -9,12 +9,9 @@ const EmailVerificationPage = () => {
   const handleResendEmail = () => {
     setIsResending(true);
 
-    // Simulate API call to resend email
     setTimeout(() => {
-      setIsResending(false);
-      setResendSuccess(true);
-
-      // Reset success message after 5 seconds
+        setIsResending(false);
+        setResendSuccess(true);
       setTimeout(() => {
         setResendSuccess(false);
       }, 5000);
@@ -22,24 +19,19 @@ const EmailVerificationPage = () => {
   };
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/login" });
+      await signOut({ callbackUrl: "/login" });
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8 text-center">
-        {/* Custom SVG illustration */}
-        <div className="mb-8 flex justify-center">
-          <svg
-            viewBox="0 0 400 240"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-64"
-          >
-            {/* SVG content remains unchanged */}
-            <rect
-              x="50"
-              y="60"
-              width="300"
+        <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="mb-8 flex justify-center">
+                <svg
+                  viewBox="0 0 400 240"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-64"
+                >
+            <rect x="50" y="60" width="300"
               height="180"
               rx="8"
               fill="#E2E8F0"
@@ -52,12 +44,9 @@ const EmailVerificationPage = () => {
             />
             <rect x="70" y="80" width="260" height="140" rx="4" fill="white" />
             <line
-              x1="100"
-              y1="110"
-              x2="300"
-              y2="110"
-              stroke="#CBD5E1"
-              strokeWidth="2"
+              x1="100" y1="110"
+              x2="300"  y2="110"
+              stroke="#CBD5E1" strokeWidth="2"
             />
             <line
               x1="100"

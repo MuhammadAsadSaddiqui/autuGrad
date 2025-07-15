@@ -11,35 +11,42 @@ import StudentsManagement from "@/components/dashboard/StudentsManagement";
 import GeneratedMCQsLibrary from "@/components/dashboard/GeneratedMCQsLibrary";
 import SettingsPage from "@/components/dashboard/SettingsPage";
 
+
 export default function MainDashboard() {
   const searchParams = useSearchParams();
 
   const currentPage = searchParams.get("page") || "overview";
+  let pageComponent;
 
   const renderCurrentPage = () => {
-    switch (currentPage) {
-      case "overview":
-        return <DashboardOverview />;
-      case "content":
-        return <ContentLibrary />;
-      case "mcq-generator":
-        return <MCQGenerator />;
-      case "generated-mcqs":
-        return <GeneratedMCQsLibrary />;
-      case "analytics":
-        return <AnalyticsDashboard />;
-      case "students":
-        return <StudentsManagement />;
-      case "settings":
-        return <SettingsPage />;
-      default:
-        return <DashboardOverview />;
+    if (currentPage === "overview") {pageComponent = <DashboardOverview />;
+    } else if (currentPage === "content") {
+            pageComponent = <ContentLibrary />;
+    } else if (currentPage === "mcq-generator") {
+       pageComponent = <MCQGenerator />;
+    }   else if (currentPage === "generated-mcqs") {
+            pageComponent = <GeneratedMCQsLibrary />;
     }
+    else if (currentPage === "analytics") {
+        pageComponent = <AnalyticsDashboard />;
+    }   else if (currentPage === "students") {
+
+
+      pageComponent = <StudentsManagement />;
+    } else if (currentPage === "settings") {
+
+      pageComponent = <SettingsPage />;
+    }   else {
+
+      pageComponent = <DashboardOverview />;
+    }
+
+      return pageComponent;
   };
 
   return (
-    <DashboardLayout currentPage={currentPage}>
-      {renderCurrentPage()}
-    </DashboardLayout>
+      <DashboardLayout currentPage={currentPage}>
+            {renderCurrentPage()}
+      </DashboardLayout>
   );
 }

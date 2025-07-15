@@ -1,354 +1,200 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  FileText,
-  Upload,
-  Search,
-  Filter,
-  MoreVertical,
-  Download,
-  Trash2,
-  Eye,
-  Calendar,
-  User,
-} from "lucide-react";
+import { useNotification } from "@/lib/context/NotificationContext";
 
-// Dummy data for content library
-const contentData = [
-  {
-    id: 1,
-    title: "Introduction to Data Structures",
-    type: "PDF",
-    size: "2.4 MB",
-    uploadDate: "2024-01-15",
-    uploadedBy: "John Doe",
-    mcqsGenerated: 25,
-    status: "processed",
-    subject: "Computer Science",
-  },
-  {
-    id: 2,
-    title: "Machine Learning Fundamentals",
-    type: "PPT",
-    size: "5.2 MB",
-    uploadDate: "2024-01-14",
-    uploadedBy: "Jane Smith",
-    mcqsGenerated: 18,
-    status: "processed",
-    subject: "AI/ML",
-  },
-  {
-    id: 3,
-    title: "Database Management Systems",
-    type: "PDF",
-    size: "3.8 MB",
-    uploadDate: "2024-01-13",
-    uploadedBy: "Mike Johnson",
-    mcqsGenerated: 32,
-    status: "processed",
-    subject: "Database",
-  },
-  {
-    id: 4,
-    title: "Algorithms and Complexity",
-    type: "PDF",
-    size: "4.1 MB",
-    uploadDate: "2024-01-12",
-    uploadedBy: "Sarah Wilson",
-    mcqsGenerated: 0,
-    status: "processing",
-    subject: "Computer Science",
-  },
-  {
-    id: 5,
-    title: "Neural Networks Overview",
-    type: "PPT",
-    size: "6.7 MB",
-    uploadDate: "2024-01-11",
-    uploadedBy: "Alex Brown",
-    mcqsGenerated: 22,
-    status: "processed",
-    subject: "AI/ML",
-  },
-  {
-    id: 6,
-    title: "Software Engineering Principles",
-    type: "TXT",
-    size: "1.2 MB",
-    uploadDate: "2024-01-10",
-    uploadedBy: "Emily Davis",
-    mcqsGenerated: 15,
-    status: "processed",
-    subject: "Software Engineering",
-  },
-];
-
-const subjects = [
-  "All",
-  "Computer Science",
-  "AI/ML",
-  "Database",
-  "Software Engineering",
-];
-const fileTypes = ["All", "PDF", "PPT", "TXT"];
+interface ContentItem {
+  id: number;
+  title: string;
+  fileName: string;
+  fileType: string;
+  filePath: string;
+  fileSize: number;
+  uploadDate: string;
+  mcqsGenerated: number;
+  userId: number;
+}
 
 export default function ContentLibrary() {
+  const [contentData, setContentData] = useState<ContentItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("All");
   const [selectedFileType, setSelectedFileType] = useState("All");
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const { showSuccess, showError } = useNotification();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const filteredContent = contentData.filter((item) => {
-    const matchesSearch = item.title
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesSubject =
-      selectedSubject === "All" || item.subject === selectedSubject;
-    const matchesFileType =
-      selectedFileType === "All" || item.type === selectedFileType;
-    return matchesSearch && matchesSubject && matchesFileType;
-  });
+  useEffect(() => { fetchContentData(); }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "processed":
-        return "bg-green-100 text-green-800";
-      case "processing":
-        return "bg-yellow-100 text-yellow-800";
-      case "failed":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const fetchContentData = async () => {
+    try {
+      const response = await fetch("/api/content");
+      if (response.ok) {
+        const data = await response.json();
+        setContentData(data);
+      } else {
+        showError("Failed to fetch content data");
+      }
+    } catch { showError("Error fetching content data"); } finally { setLoading(false); }
   };
 
-  const getFileIcon = (type: string) => {
-    switch (type) {
-      case "PDF":
-        return "📄";
-      case "PPT":
-        return "📊";
-      case "TXT":
-        return "📝";
-      default:
-        return "📄";
-    }
+  const validateAndSetFile = (file: File) => {
+    const validTypes = ["application/pdf", "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation"];
+    const validExtensions = ['pdf', 'ppt', 'pptx'];
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension || '')) return showError("Only PDF and PPTX files are supported");
+    if (file.size > 10 * 1024 * 1024) return showError("File size must be less than 10MB");
+    setSelectedFile(file);
   };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => e.target.files?.[0] && validateAndSetFile(e.target.files[0]);
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(true); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(false); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(false); e.dataTransfer.files.length && validateAndSetFile(e.dataTransfer.files[0]); };
+  const triggerFileInput = () => fileInputRef.current?.click();
+
+  const handleUpload = async () => {
+    if (!selectedFile) return showError("Please select a file to upload");
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    try {
+      const response = await fetch("/api/content/upload", { method: "POST", body: formData });
+      const result = await response.json();
+      if (response.ok) { showSuccess("File uploaded successfully"); setShowUploadModal(false); setSelectedFile(null); fetchContentData(); }
+      else showError(result.message || "Upload failed");
+    } catch { showError("Error uploading file"); } finally { setIsUploading(false); }
+  };
+
+  const handleDownload = async (filePath: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/content/download?path=${encodeURIComponent(filePath)}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none'; a.href = url; a.download = fileName;
+        document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a);
+        showSuccess("File downloaded successfully");
+      } else showError("Failed to download file");
+    } catch { showError("Error downloading file"); }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this file?")) return;
+    try {
+      const response = await fetch(`/api/content/${id}`, { method: "DELETE" });
+      if (response.ok) { showSuccess("File deleted successfully"); fetchContentData(); }
+      else showError("Failed to delete file");
+    } catch { showError("Error deleting file"); }
+  };
+
+  const filteredContent = contentData.filter(item => 
+    (item.title.toLowerCase().includes(searchTerm.toLowerCase()) || item.fileName.toLowerCase().includes(searchTerm.toLowerCase())) && 
+    (selectedFileType === "All" || item.fileType.toUpperCase() === selectedFileType)
+  );
+
+  const getStatusColor = (status: string) => "bg-gray-100 text-gray-800";
+  const formatFileSize = (bytes: number) => bytes === 0 ? '0 Bytes' : (() => { const k = 1024; const sizes = ['Bytes', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(bytes) / Math.log(k)); return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]; })();
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Content Library</h2>
-          <p className="text-gray-600">
-            Manage your uploaded content and generate MCQs
-          </p>
-        </div>
-        <Button onClick={() => setShowUploadModal(true)} className="w-fit">
-          <Upload className="h-4 w-4 mr-2" />
-          Upload Content
-        </Button>
+        <div><h2 className="text-2xl font-bold">Content Library</h2><p>Manage your uploaded content and generate MCQs</p></div>
+        <Button onClick={() => setShowUploadModal(true)}>Upload Content</Button>
       </div>
 
-      {/* Filters and Search */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card><CardContent className="p-4"><div><p className="text-sm">Total Files</p><p className="text-xl font-bold">{contentData.length}</p></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div><p className="text-sm">PDF Files</p><p className="text-xl font-bold">{contentData.filter(item => item.fileType.toUpperCase() === 'PDF').length}</p></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div><p className="text-sm">PPTX Files</p><p className="text-xl font-bold">{contentData.filter(item => item.fileType.toUpperCase() === 'PPTX').length}</p></div></CardContent></Card>
+      </div>
+
       <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search content..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                {subjects.map((subject) => (
-                  <option key={subject} value={subject}>
-                    {subject}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedFileType}
-                onChange={(e) => setSelectedFileType(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                {fileTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
+            <div className="flex-1"><Input placeholder="Search content..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+            <div><select value={selectedFileType} onChange={(e) => setSelectedFileType(e.target.value)} className="px-3 py-2 border rounded text-sm">{["All", "PDF", "PPTX"].map(type => <option key={type} value={type}>{type}</option>)}</select></div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredContent.map((content) => (
-          <Card key={content.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-2xl">{getFileIcon(content.type)}</span>
-                  <div>
-                    <CardTitle className="text-sm font-medium">
-                      {content.title}
-                    </CardTitle>
-                    <p className="text-xs text-gray-500">{content.subject}</p>
+      <div className="space-y-4">
+        {filteredContent.length === 0 ? (
+          <Card><CardContent className="p-8 text-center"><h3 className="text-lg font-medium mb-2">No content found</h3><p className="mb-4">{contentData.length === 0 ? "Upload your first file to get started" : "No files match your search criteria"}</p>{contentData.length === 0 && <Button onClick={() => setShowUploadModal(true)}>Upload Content</Button>}</CardContent></Card>
+        ) : (
+          filteredContent.map(item => (
+            <Card key={item.id}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center"><span className="text-sm font-medium">{item.fileType.toUpperCase()}</span></div>
+                    <div>
+                      <h3 className="font-medium">{item.title}</h3>
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <span>{item.fileType.toUpperCase()}</span><span>•</span><span>{formatFileSize(item.fileSize)}</span><span>•</span><span>{new Date(item.uploadDate).toLocaleDateString()}</span>
+                        {item.mcqsGenerated > 0 && <><span>•</span><span className="text-green-600">{item.mcqsGenerated} MCQs generated</span></>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleDownload(item.filePath, item.fileName)}>Download</Button>
+                      <Button variant="outline" size="sm" onClick={() => console.log("Generate MCQs for", item.id)}>Generate MCQs</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
+                    </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Type:</span>
-                <span className="font-medium">{content.type}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Size:</span>
-                <span className="font-medium">{content.size}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">MCQs Generated:</span>
-                <span className="font-medium">{content.mcqsGenerated}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Status:</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(content.status)}`}
-                >
-                  {content.status}
-                </span>
-              </div>
-              <div className="flex items-center space-x-1 text-xs text-gray-500">
-                <Calendar className="h-3 w-3" />
-                <span>{content.uploadDate}</span>
-                <span>•</span>
-                <User className="h-3 w-3" />
-                <span>{content.uploadedBy}</span>
-              </div>
-              <div className="flex space-x-2 mt-4">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Eye className="h-3 w-3 mr-1" />
-                  View
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  disabled={content.status !== "processed"}
-                >
-                  Generate MCQs
-                </Button>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="ghost" size="sm" className="flex-1">
-                  <Download className="h-3 w-3 mr-1" />
-                  Download
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1 text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
-      {/* Upload Modal (simplified for demonstration) */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <Card className="w-full max-w-md mx-4">
             <CardHeader>
-              <CardTitle>Upload New Content</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Upload Content</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => { setShowUploadModal(false); setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}>Close</Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-sm text-gray-600">
-                  Drag and drop your files here, or click to browse
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  Supports PDF, PPT, and TXT files
-                </p>
+              <div className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer ${isDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onClick={triggerFileInput}>
+                {selectedFile ? (
+                  <div className="space-y-2">
+                    <div className="w-12 h-12 mx-auto rounded bg-gray-100 flex items-center justify-center"><span className="text-sm font-medium">{selectedFile.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'PPTX'}</span></div>
+                    <p className="font-medium">{selectedFile.name}</p>
+                    <p className="text-sm text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}>Remove</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className={`w-12 h-12 mx-auto rounded border-2 border-dashed flex items-center justify-center ${isDragOver ? 'border-blue-500' : 'border-gray-300'}`}><span className="text-xl">+</span></div>
+                    <p className={`text-sm ${isDragOver ? 'text-blue-600' : 'text-gray-600'}`}>{isDragOver ? 'Drop your file here' : 'Click to select or drag and drop'}</p>
+                    <p className="text-xs text-gray-400">PDF and PPTX files only (Max 10MB)</p>
+                  </div>
+                )}
               </div>
+              <input ref={fileInputRef} type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileSelect} className="hidden" />
+              <Button variant="outline" onClick={triggerFileInput} className="w-full">Choose File</Button>
               <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowUploadModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button className="flex-1">Upload</Button>
+                <Button variant="outline" className="flex-1" onClick={() => { setShowUploadModal(false); setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} disabled={isUploading}>Cancel</Button>
+                <Button className="flex-1" onClick={handleUpload} disabled={!selectedFile || isUploading}>{isUploading ? "Uploading..." : "Upload"}</Button>
               </div>
             </CardContent>
           </Card>
         </div>
       )}
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              {contentData.length}
-            </div>
-            <div className="text-sm text-gray-600">Total Files</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {contentData.reduce((sum, item) => sum + item.mcqsGenerated, 0)}
-            </div>
-            <div className="text-sm text-gray-600">MCQs Generated</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {contentData.filter((item) => item.status === "processed").length}
-            </div>
-            <div className="text-sm text-gray-600">Processed</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">
-              {contentData
-                .reduce((sum, item) => sum + parseFloat(item.size), 0)
-                .toFixed(1)}{" "}
-              MB
-            </div>
-            <div className="text-sm text-gray-600">Total Size</div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
