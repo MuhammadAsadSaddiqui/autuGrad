@@ -8,25 +8,25 @@ import { getAuthUser } from "@/lib/authUser";
 export async function GET(request: NextRequest) {
     try {
         
-        const session = await getAuthUser();
-        if (!session?.user?.email) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+        // const session = await getAuthUser();
+        // if (!session?.user?.email) {
+        //     return NextResponse.json(
+        //         { message: "Unauthorized" },
+        //         { status: 401 }
+        //     );
+        // }
 
         
-        const user = await db.user.findUnique({
-            where: { email: session.user.email },
-        });
+        // const user = await db.user.findUnique({
+        //     where: { email: session.user.email },
+        // });
 
-        if (!user) {
-            return NextResponse.json(
-                { message: "User not found" },
-                { status: 404 }
-            );
-        }
+        // if (!user) {
+        //     return NextResponse.json(
+        //         { message: "User not found" },
+        //         { status: 404 }
+        //     );
+        // }
 
         const { searchParams } = new URL(request.url);
         const filePath = searchParams.get("path");
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         const content = await db.content.findFirst({
             where: {
                 filePath: filePath,
-                userId: user.id,
+                // userId: user.id,
             },
         });
 
