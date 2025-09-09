@@ -50,12 +50,14 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id; // ← ADDED THIS LINE
         token.emailVerified = user.emailVerified;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
+        session.user.id = token.sub; // ← ADDED THIS LINE
         session.user.emailVerified = token.emailVerified;
       }
       return session;
