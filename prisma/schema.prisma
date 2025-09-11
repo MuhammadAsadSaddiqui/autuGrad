@@ -21,6 +21,7 @@ model User {
   passwordReset     PasswordReset?
   content           Content[]
   students          Student[]
+  mcqSets           MCQSet[]
 }
 
 model PasswordReset {
@@ -44,6 +45,7 @@ model Content {
   mcqsGenerated Int      @default(0)
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        Int
+  mcqSets       MCQSet[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -56,7 +58,7 @@ model Student {
   email         String
   phone         String
   department    String
-  status        String   @default("active") // "active" or "inactive"
+  status        String   @default("active")
   totalQuizzes  Int      @default(0)
   averageScore  Float    @default(0.0)
   lastActivity  String   @default("Never")
@@ -67,4 +69,39 @@ model Student {
 
   @@index([teacherId])
   @@index([email, teacherId])
+}
+
+model MCQSet {
+  id             Int          @id @default(autoincrement())
+  name           String
+  description    String?
+  status         String       @default("pending")  // pending, generating, completed, failed
+  workflowId     String?      @unique
+  totalQuestions Int          @default(0)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  content        Content      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId      Int
+  questions      MCQQuestion[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([contentId])
+  @@index([status])
+}
+
+model MCQQuestion {
+  id        Int      @id @default(autoincrement())
+  question  String   @db.Text
+  optionA   String   @db.Text
+  optionB   String   @db.Text
+  optionC   String   @db.Text
+  optionD   String   @db.Text
+  answer    String   // A, B, C, or D
+  mcqSet    MCQSet   @relation(fields: [mcqSetId], references: [id], onDelete: Cascade)
+  mcqSetId  Int
+  createdAt DateTime @default(now())
+
+  @@index([mcqSetId])
 }
