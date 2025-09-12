@@ -8,20 +8,21 @@ datasource db {
 }
 
 model User {
-  id                Int       @id @default(autoincrement())
+  id                Int             @id @default(autoincrement())
   fullName          String
-  email             String    @unique
+  email             String          @unique
   password          String
-  emailVerified     Boolean   @default(false)
+  emailVerified     Boolean         @default(false)
   emailVerifiedTime DateTime?
   verificationToken String?
   tokenExpiry       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   passwordReset     PasswordReset?
   content           Content[]
   students          Student[]
   mcqSets           MCQSet[]
+  quizAttempts      QuizAttempt[]
 }
 
 model PasswordReset {
@@ -72,19 +73,20 @@ model Student {
 }
 
 model MCQSet {
-  id             Int          @id @default(autoincrement())
+  id             Int             @id @default(autoincrement())
   name           String
   description    String?
-  status         String       @default("pending")  // pending, generating, completed, failed
-  workflowId     String?      @unique
-  totalQuestions Int          @default(0)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         String          @default("pending")
+  workflowId     String?         @unique
+  totalQuestions Int             @default(0)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         Int
-  content        Content      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  content        Content         @relation(fields: [contentId], references: [id], onDelete: Cascade)
   contentId      Int
   questions      MCQQuestion[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  quizAttempts   QuizAttempt[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([userId])
   @@index([contentId])
@@ -98,10 +100,32 @@ model MCQQuestion {
   optionB   String   @db.Text
   optionC   String   @db.Text
   optionD   String   @db.Text
-  answer    String   // A, B, C, or D
+  answer    String
   mcqSet    MCQSet   @relation(fields: [mcqSetId], references: [id], onDelete: Cascade)
   mcqSetId  Int
   createdAt DateTime @default(now())
 
   @@index([mcqSetId])
+}
+
+model QuizAttempt {
+  id              Int      @id @default(autoincrement())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          Int
+  mcqSet          MCQSet   @relation(fields: [mcqSetId], references: [id], onDelete: Cascade)
+  mcqSetId        Int
+  score           Int
+  totalQuestions  Int
+  scorePercentage Int
+  timeSpent       Int
+  answers         String   @db.Text
+  grade           String
+  passed          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([mcqSetId])
+  @@index([createdAt])
+  @@index([scorePercentage])
 }
