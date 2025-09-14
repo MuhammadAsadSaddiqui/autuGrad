@@ -1,3 +1,4 @@
+// components/dashboard/DashboardLayout.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -11,6 +12,7 @@ import {
   Home,
   Users,
   Brain,
+  PlayCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -38,6 +40,12 @@ const sidebarItems = [
     label: "Generated MCQs",
     icon: FileText,
     href: "/dashboard/mcqs",
+  },
+  {
+    id: "quiz",
+    label: "Take Quiz",
+    icon: PlayCircle,
+    href: "/quiz",
   },
   {
     id: "analytics",
@@ -69,14 +77,20 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const setCurrentPage = (page: string) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", page);
-    router.push(`/dashboard?${params.toString()}`);
+    const item = sidebarItems.find(item => item.id === page);
+    if (item) {
+      if (item.id === "quiz") {
+        router.push("/quiz");
+      } else {
+        const params = new URLSearchParams(searchParams);
+        params.set("page", page);
+        router.push(`/dashboard?${params.toString()}`);
+      }
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-     
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
@@ -84,7 +98,6 @@ export default function DashboardLayout({
         />
       )}
 
-     
       <div
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -92,7 +105,6 @@ export default function DashboardLayout({
       >
         <div className="flex items-center justify-between h-16 px-6 border-b">
           <div className="flex items-center space-x-2">
-         
             <span className="text-xl font-bold text-gray-900">Autograd</span>
           </div>
           <button
@@ -111,9 +123,7 @@ export default function DashboardLayout({
               <button
                 key={item.id}
                 onClick={() => {
-                  console.log(`Switching to: ${item.id}`); // Debug log
                   setCurrentPage(item.id);
-                  setSidebarOpen(false);
                 }}
                 className={`w-full flex items-center px-3 py-2 mt-1 text-sm font-medium rounded-lg transition-colors text-left ${
                   isActive
@@ -133,19 +143,11 @@ export default function DashboardLayout({
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-medium">T</span>
             </div>
-            {/* <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-700 truncate">
-                Teacher
-              </p>
-              <p className="text-xs text-gray-500 truncate">john.doe@edu.com</p>
-            </div> */}
           </div>
         </div>
       </div>
 
-    
       <div className="flex-1 lg:ml-0">
-       
         <div className="lg:hidden bg-white shadow-sm border-b">
           <div className="flex items-center justify-between h-16 px-6">
             <button
@@ -164,7 +166,6 @@ export default function DashboardLayout({
           </div>
         </div>
 
-        {/* Page content */}
         <div className="p-6">{children}</div>
       </div>
     </div>
