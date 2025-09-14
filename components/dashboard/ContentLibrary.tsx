@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNotification } from "@/lib/context/NotificationContext";
+import { Brain } from "lucide-react";
 
 interface ContentItem {
   id: number;
@@ -15,6 +16,7 @@ interface ContentItem {
   fileSize: number;
   uploadDate: string;
   mcqsGenerated: number;
+  status: string;
   userId: number;
 }
 
@@ -27,6 +29,7 @@ export default function ContentLibrary() {
   const [isUploading, setIsUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [generatingMCQs, setGeneratingMCQs] = useState<number[]>([]);
   const { showSuccess, showError } = useNotification();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -42,6 +45,41 @@ export default function ContentLibrary() {
         showError("Failed to fetch content data");
       }
     } catch { showError("Error fetching content data"); } finally { setLoading(false); }
+  };
+
+  const handleGenerateMCQs = async (contentId: number) => {
+    setGeneratingMCQs(prev => [...prev, contentId]);
+    
+    try {
+      const response = await fetch("/api/mcq/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentId,
+          numQuestions: 5
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showSuccess("MCQ generation started! Check the MCQ Generator page for status.");
+        
+        setContentData(prev => 
+          prev.map(item => 
+            item.id === contentId 
+              ? { ...item, status: "generating" }
+              : item
+          )
+        );
+      } else {
+        showError(data.error || "Failed to start MCQ generation");
+      }
+    } catch {
+      showError("Error starting MCQ generation");
+    } finally {
+      setGeneratingMCQs(prev => prev.filter(id => id !== contentId));
+    }
   };
 
   const validateAndSetFile = (file: File) => {
@@ -100,8 +138,16 @@ export default function ContentLibrary() {
     (selectedFileType === "All" || item.fileType.toUpperCase() === selectedFileType)
   );
 
-  const getStatusColor = (status: string) => "bg-gray-100 text-gray-800";
   const formatFileSize = (bytes: number) => bytes === 0 ? '0 Bytes' : (() => { const k = 1024; const sizes = ['Bytes', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(bytes) / Math.log(k)); return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]; })();
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed": return "bg-green-100 text-green-800";
+      case "generating": return "bg-yellow-100 text-yellow-800";
+      case "failed": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
 
@@ -142,13 +188,22 @@ export default function ContentLibrary() {
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <span>{item.fileType.toUpperCase()}</span><span>•</span><span>{formatFileSize(item.fileSize)}</span><span>•</span><span>{new Date(item.uploadDate).toLocaleDateString()}</span>
                         {item.mcqsGenerated > 0 && <><span>•</span><span className="text-green-600">{item.mcqsGenerated} MCQs generated</span></>}
+                        <span>•</span><span className={`px-2 py-1 rounded text-xs ${getStatusColor(item.status)}`}>{item.status}</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleDownload(item.filePath, item.fileName)}>Download</Button>
-                      <Button variant="outline" size="sm" onClick={() => console.log("Generate MCQs for", item.id)}>Generate MCQs</Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleGenerateMCQs(item.id)}
+                        disabled={generatingMCQs.includes(item.id) || item.status === "generating"}
+                      >
+                        <Brain className="h-4 w-4 mr-1" />
+                        {generatingMCQs.includes(item.id) || item.status === "generating" ? "Generating..." : "Generate MCQs"}
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => handleDelete(item.id)}>Delete</Button>
                     </div>
                   </div>
