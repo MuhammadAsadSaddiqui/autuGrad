@@ -1,3 +1,4 @@
+// app/(private)/dashboard/page.tsx
 "use client";
 
 import React from "react";
