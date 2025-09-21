@@ -10,9 +10,7 @@ import {
   Menu,
   X,
   Home,
-  Users,
   Brain,
-  PlayCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -42,22 +40,10 @@ const sidebarItems = [
     href: "/dashboard/mcqs",
   },
   {
-    id: "quiz",
-    label: "Take Quiz",
-    icon: PlayCircle,
-    href: "/quiz",
-  },
-  {
     id: "analytics",
     label: "Analytics",
     icon: BarChart3,
     href: "/dashboard/analytics",
-  },
-  {
-    id: "students",
-    label: "Students",
-    icon: Users,
-    href: "/dashboard/students",
   },
   {
     id: "settings",
@@ -77,7 +63,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const setCurrentPage = (page: string) => {
-    const item = sidebarItems.find(item => item.id === page);
+    const item = sidebarItems.find((item) => item.id === page);
     if (item) {
       if (item.id === "quiz") {
         router.push("/quiz");
