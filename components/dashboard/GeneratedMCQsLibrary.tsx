@@ -1,3 +1,4 @@
+// components/dashboard/GeneratedMCQsLibrary.tsx (Updated with Quiz Features)
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -7,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import {
   Eye,
   Download,
-  Share,
   Trash2,
   Clock,
   CheckCircle,
@@ -15,10 +15,19 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  Users,
   Award,
+  BarChart3,
+  Send,
 } from "lucide-react";
 import { useNotification } from "@/lib/context/NotificationContext";
+import ShareQuizModal from "@/components/modals/ShareQuizModal";
+import QuizResultsModal from "@/components/modals/QuizResultsModal";
+
+interface ContentItem {
+  title: string;
+  fileName: string;
+  fileType: string;
+}
 
 interface MCQSet {
   id: number;
@@ -27,11 +36,7 @@ interface MCQSet {
   status: string;
   totalQuestions: number;
   createdAt: string;
-  content: {
-    title: string;
-    fileName: string;
-    fileType: string;
-  };
+  content: ContentItem;
   _count: {
     questions: number;
   };
@@ -54,7 +59,12 @@ export default function GeneratedMCQsLibrary() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [loading, setLoading] = useState(true);
+
+  // Modals
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
+
   const [selectedMCQSet, setSelectedMCQSet] = useState<MCQSet | null>(null);
   const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
@@ -71,17 +81,12 @@ export default function GeneratedMCQsLibrary() {
   }, []);
 
   const fetchMCQSets = async () => {
-    setLoading(true);
     try {
       const response = await fetch("/api/mcq/sets");
-      console.log("Response status:", response.status);
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data: MCQSet[] = await response.json();
-      console.log("Fetched MCQ sets:", data);
       setMcqSets(data);
     } catch (error) {
       console.error("Error fetching MCQ sets:", error);
@@ -104,7 +109,7 @@ export default function GeneratedMCQsLibrary() {
       } else {
         showError("Failed to fetch questions");
       }
-    } catch (error) {
+    } catch {
       showError("Error fetching questions");
     } finally {
       setLoadingQuestions(false);
@@ -116,6 +121,16 @@ export default function GeneratedMCQsLibrary() {
     setShowViewModal(true);
     setViewMode("list");
     await fetchMCQQuestions(mcqSet.id);
+  };
+
+  const handleShareQuiz = (mcqSet: MCQSet) => {
+    setSelectedMCQSet(mcqSet);
+    setShowShareModal(true);
+  };
+
+  const handleViewResults = (mcqSet: MCQSet) => {
+    setSelectedMCQSet(mcqSet);
+    setShowResultsModal(true);
   };
 
   const handleDeleteMCQSet = async (id: number) => {
@@ -132,7 +147,7 @@ export default function GeneratedMCQsLibrary() {
       } else {
         showError("Failed to delete MCQ set");
       }
-    } catch (error) {
+    } catch {
       showError("Error deleting MCQ set");
     }
   };
@@ -154,21 +169,9 @@ export default function GeneratedMCQsLibrary() {
       } else {
         showError("Failed to export MCQ set");
       }
-    } catch (error) {
+    } catch {
       showError("Error exporting MCQ set");
     }
-  };
-
-  const handleShareMCQSet = (mcqSet: MCQSet) => {
-    const shareUrl = `${window.location.origin}/shared-mcq/${mcqSet.id}`;
-    navigator.clipboard
-      .writeText(shareUrl)
-      .then(() => {
-        showSuccess("Share link copied to clipboard!");
-      })
-      .catch(() => {
-        showError("Failed to copy share link");
-      });
   };
 
   const toggleQuestionExpansion = (questionId: number) => {
@@ -409,6 +412,30 @@ export default function GeneratedMCQsLibrary() {
                       <Eye className="h-3 w-3 mr-1" />
                       View Questions
                     </Button>
+
+                    {/* Quiz Actions */}
+                    <div className="flex space-x-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleShareQuiz(mcqSet)}
+                      >
+                        <Send className="h-3 w-3 mr-1" />
+                        Share Quiz
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleViewResults(mcqSet)}
+                      >
+                        <BarChart3 className="h-3 w-3 mr-1" />
+                        Results
+                      </Button>
+                    </div>
+
+                    {/* Other Actions */}
                     <div className="flex space-x-1">
                       <Button
                         variant="outline"
@@ -418,15 +445,6 @@ export default function GeneratedMCQsLibrary() {
                       >
                         <Download className="h-3 w-3 mr-1" />
                         Export
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleShareMCQSet(mcqSet)}
-                      >
-                        <Share className="h-3 w-3 mr-1" />
-                        Share
                       </Button>
                       <Button
                         variant="outline"
@@ -444,7 +462,7 @@ export default function GeneratedMCQsLibrary() {
         )}
       </div>
 
-      {/* Enhanced View MCQ Modal */}
+      {/* View MCQ Modal */}
       {showViewModal && selectedMCQSet && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-5xl max-h-[95vh] overflow-hidden">
@@ -718,6 +736,29 @@ export default function GeneratedMCQsLibrary() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Share Quiz Modal */}
+      {showShareModal && selectedMCQSet && (
+        <ShareQuizModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          mcqSet={{
+            id: selectedMCQSet.id,
+            name: selectedMCQSet.name,
+            description: selectedMCQSet.description || "",
+            totalQuestions: selectedMCQSet.totalQuestions,
+          }}
+        />
+      )}
+
+      {/* Quiz Results Modal */}
+      {showResultsModal && selectedMCQSet && (
+        <QuizResultsModal
+          isOpen={showResultsModal}
+          onClose={() => setShowResultsModal(false)}
+          mcqSetId={selectedMCQSet.id}
+        />
       )}
     </div>
   );
