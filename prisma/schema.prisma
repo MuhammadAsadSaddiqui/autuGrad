@@ -1,3 +1,4 @@
+// prisma/schema.prisma (Updated with Quiz Models)
 generator client {
   provider = "prisma-client-js"
 }
@@ -16,6 +17,9 @@ model User {
   emailVerifiedTime DateTime?
   verificationToken String?
   tokenExpiry       DateTime?
+  phone             String?
+  department        String?
+  institution       String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   passwordReset     PasswordReset?
@@ -54,19 +58,22 @@ model Content {
 }
 
 model Student {
-  id            Int      @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   name          String
   email         String
   phone         String
   department    String
-  status        String   @default("active")
-  totalQuizzes  Int      @default(0)
-  averageScore  Float    @default(0.0)
-  lastActivity  String   @default("Never")
-  teacher       User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  status        String     @default("active")
+  totalQuizzes  Int        @default(0)
+  averageScore  Float      @default(0.0)
+  lastActivity  String     @default("Never")
+  enrollmentDate DateTime  @default(now())
+  teacher       User       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   teacherId     Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  quizCodes     QuizCode[]
+  quizAttempts  QuizAttempt[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@index([teacherId])
   @@index([email, teacherId])
@@ -85,6 +92,7 @@ model MCQSet {
   contentId      Int
   questions      MCQQuestion[]
   quizAttempts   QuizAttempt[]
+  quizCodes      QuizCode[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -108,23 +116,45 @@ model MCQQuestion {
   @@index([mcqSetId])
 }
 
+model QuizCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int
+  mcqSet    MCQSet   @relation(fields: [mcqSetId], references: [id], onDelete: Cascade)
+  mcqSetId  Int
+  isUsed    Boolean  @default(false)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([studentId])
+  @@index([mcqSetId])
+  @@index([isUsed])
+}
+
 model QuizAttempt {
   id              Int      @id @default(autoincrement())
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId          Int
+  userId          Int      // Teacher's ID
+  student         Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId       Int?     // Student's ID
   mcqSet          MCQSet   @relation(fields: [mcqSetId], references: [id], onDelete: Cascade)
   mcqSetId        Int
   score           Int
   totalQuestions  Int
   scorePercentage Int
-  timeSpent       Int
-  answers         String   @db.Text
-  grade           String
+  timeSpent       Int      // in seconds
+  answers         String   @db.Text // JSON string of answers
+  grade           String   // A, B, C, D, F
   passed          Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([userId])
+  @@index([studentId])
   @@index([mcqSetId])
   @@index([createdAt])
   @@index([scorePercentage])
