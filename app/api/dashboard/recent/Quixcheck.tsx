@@ -4,6 +4,7 @@ const Quixcheck = () => {
   return (
     <div><div>
         Quiz check
+        <button>Click</button>
         </div></div>
   )
 }
