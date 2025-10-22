@@ -11,6 +11,7 @@ import {
   X,
   Home,
   Brain,
+  Users,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -40,10 +41,10 @@ const sidebarItems = [
     href: "/dashboard/mcqs",
   },
   {
-    id: "analytics",
-    label: "Analytics",
-    icon: BarChart3,
-    href: "/dashboard/analytics",
+    id: "students",
+    label: "Students",
+    icon: Users,
+    href: "/dashboard/students",
   },
   {
     id: "settings",
