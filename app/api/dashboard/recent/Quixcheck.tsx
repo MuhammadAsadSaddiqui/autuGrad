@@ -1,12 +1,13 @@
-import React from 'react'
+import React from "react";
 
 const Quixcheck = () => {
   return (
-    <div><div>
-        Quiz check
-        <button>Click</button>
-        </div></div>
-  )
-}
+    <div>
+      <div className={"flex"}>
+        <h1>testing new model</h1>
+      </div>
+    </div>
+  );
+};
 
-export default Quixcheck
+export default Quixcheck;
