@@ -94,13 +94,6 @@ export default function DashboardOverview() {
       icon: Users,
       color: "text-purple-600",
     },
-    {
-      title: "View Analytics",
-      description: "Check performance and usage statistics",
-      action: "analytics",
-      icon: BarChart3,
-      color: "text-orange-600",
-    },
   ];
 
   const handleQuickAction = (action: string) => {
