@@ -6,6 +6,7 @@ const Quixcheck = () => {
       <div className={"flex"}>
         <h1>testing new model</h1>
         <p>New model llama 3.2 3b </p>
+        <p>10 question generated </p>
       </div>
     </div>
   );
