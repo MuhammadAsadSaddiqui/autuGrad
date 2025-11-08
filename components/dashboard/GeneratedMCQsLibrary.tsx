@@ -1,4 +1,4 @@
-// components/dashboard/GeneratedMCQsLibrary.tsx (Updated with Quiz Features)
+// components/dashboard/GeneratedMCQsLibrary.tsx (Complete with Fixed Delete Button)
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -401,61 +401,66 @@ export default function GeneratedMCQsLibrary() {
                   )}
                 </div>
 
-                {mcqSet.status === "completed" && (
-                  <div className="flex flex-col space-y-2 pt-3 border-t">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => handleViewMCQSet(mcqSet)}
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View Questions
-                    </Button>
-
-                    {/* Quiz Actions */}
-                    <div className="flex space-x-1">
+                {/* Action Buttons - Always show delete */}
+                <div className="flex flex-col space-y-2 pt-3 border-t">
+                  {mcqSet.status === "completed" && (
+                    <>
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
-                        className="flex-1"
-                        onClick={() => handleShareQuiz(mcqSet)}
+                        className="w-full"
+                        onClick={() => handleViewMCQSet(mcqSet)}
                       >
-                        <Send className="h-3 w-3 mr-1" />
-                        Share Quiz
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Questions
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleViewResults(mcqSet)}
-                      >
-                        <BarChart3 className="h-3 w-3 mr-1" />
-                        Results
-                      </Button>
-                    </div>
 
-                    {/* Other Actions */}
-                    <div className="flex space-x-1">
+                      {/* Quiz Actions */}
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleShareQuiz(mcqSet)}
+                        >
+                          <Send className="h-3 w-3 mr-1" />
+                          Share Quiz
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleViewResults(mcqSet)}
+                        >
+                          <BarChart3 className="h-3 w-3 mr-1" />
+                          Results
+                        </Button>
+                      </div>
+
+                      {/* Export Action */}
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="w-full"
                         onClick={() => handleExportMCQSet(mcqSet)}
                       >
                         <Download className="h-3 w-3 mr-1" />
                         Export
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteMCQSet(mcqSet.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                    </>
+                  )}
+
+                  {/* Delete button - always visible regardless of status */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => handleDeleteMCQSet(mcqSet.id)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Delete
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))
