@@ -8,11 +8,10 @@ import {
   Brain,
   Users,
   Upload,
-  BarChart3,
-  Plus,
   Clock,
   CheckCircle,
   XCircle,
+  Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -106,9 +105,6 @@ export default function DashboardOverview() {
         break;
       case "students":
         router.push("/dashboard?page=students");
-        break;
-      case "analytics":
-        router.push("/dashboard?page=analytics");
         break;
       default:
         console.log(`Quick action: ${action}`);
@@ -278,15 +274,6 @@ export default function DashboardOverview() {
                   ))}
                 </div>
               )}
-              <div className="mt-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => router.push("/dashboard?page=analytics")}
-                >
-                  View All Activity
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>

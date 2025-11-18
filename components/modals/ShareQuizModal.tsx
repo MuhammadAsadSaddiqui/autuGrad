@@ -266,9 +266,6 @@ export default function ShareQuizModal({
                     • Quiz codes are valid for 7 days and can only be used once
                   </li>
                   <li>• Each question has a 1-minute time limit</li>
-                  <li>
-                    • Quiz will be in secure mode - no other tabs can be opened
-                  </li>
                   <li>• Students must complete the quiz in one session</li>
                 </ul>
               </div>

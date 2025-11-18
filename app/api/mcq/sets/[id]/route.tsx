@@ -1,16 +1,103 @@
+// app/api/mcq/sets/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/authUser";
 import { db } from "@/lib/db";
 
-export async function GET(request: NextRequest) {
+// DELETE endpoint - Delete an MCQ set
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     const session = await getAuthUser();
+
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized - Please sign in" },
+        { status: 401 },
+      );
+    }
+
+    const mcqSetId = parseInt(params.id);
+
+    if (isNaN(mcqSetId)) {
+      return NextResponse.json(
+        { error: "Invalid MCQ set ID" },
+        { status: 400 },
+      );
+    }
+
+    // First, verify the MCQ set exists and belongs to the user
+    const mcqSet = await db.mCQSet.findFirst({
+      where: {
+        id: mcqSetId,
+        userId: parseInt(session.user.id),
+      },
+    });
+
+    if (!mcqSet) {
+      return NextResponse.json(
+        { error: "MCQ set not found or access denied" },
+        { status: 404 },
+      );
+    }
+
+    // Delete all questions first (if cascade is not set up)
+    await db.mCQQuestion.deleteMany({
+      where: { mcqSetId: mcqSetId },
+    });
+
+    // Then delete the MCQ set
+    await db.mCQSet.delete({
+      where: { id: mcqSetId },
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "MCQ set deleted successfully",
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error("Error deleting MCQ set:", error);
+
+    return NextResponse.json(
+      {
+        error: "Failed to delete MCQ set",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// GET endpoint - Get single MCQ set details
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await getAuthUser();
+
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const mcqSets = await db.mCQSet.findMany({
-      where: { userId: parseInt(session.user.id) },
+    const mcqSetId = parseInt(params.id);
+
+    if (isNaN(mcqSetId)) {
+      return NextResponse.json(
+        { error: "Invalid MCQ set ID" },
+        { status: 400 },
+      );
+    }
+
+    const mcqSet = await db.mCQSet.findFirst({
+      where: {
+        id: mcqSetId,
+        userId: parseInt(session.user.id),
+      },
       include: {
         content: {
           select: {
@@ -20,71 +107,73 @@ export async function GET(request: NextRequest) {
           },
         },
         _count: {
-          select: {
-            questions: true,
-          },
+          select: { questions: true },
         },
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(mcqSets);
+    if (!mcqSet) {
+      return NextResponse.json({ error: "MCQ set not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(mcqSet, { status: 200 });
   } catch (error) {
-    console.error("Error fetching MCQ sets:", error);
+    console.error("Error fetching MCQ set:", error);
     return NextResponse.json(
-      { error: "Failed to fetch MCQ sets" },
+      { error: "Failed to fetch MCQ set" },
       { status: 500 },
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+// PATCH endpoint - Update MCQ set (optional)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     const session = await getAuthUser();
+
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, description, contentId } = await request.json();
+    const mcqSetId = parseInt(params.id);
 
-    if (!name || !contentId) {
+    if (isNaN(mcqSetId)) {
       return NextResponse.json(
-        { error: "Name and content ID are required" },
+        { error: "Invalid MCQ set ID" },
         { status: 400 },
       );
     }
 
-    // Verify content exists and belongs to the user
-    const content = await db.content.findFirst({
+    const body = await request.json();
+    const { name, description, status } = body;
+
+    // Verify ownership
+    const existingMcqSet = await db.mCQSet.findFirst({
       where: {
-        id: contentId,
+        id: mcqSetId,
         userId: parseInt(session.user.id),
       },
     });
 
-    if (!content) {
+    if (!existingMcqSet) {
       return NextResponse.json(
-        { error: "Content not found or access denied" },
+        { error: "MCQ set not found or access denied" },
         { status: 404 },
       );
     }
 
-    // Check if content is processed and ready for MCQ generation
-    if (content.status !== "processed" && content.status !== "completed") {
-      return NextResponse.json(
-        { error: "Content must be processed before generating MCQs" },
-        { status: 400 },
-      );
-    }
-
-    // Create the MCQ set
-    const mcqSet = await db.mCQSet.create({
+    // Update the MCQ set
+    const updatedMcqSet = await db.mCQSet.update({
+      where: { id: mcqSetId },
       data: {
-        name: name.trim(),
-        description: description?.trim() || null,
-        userId: parseInt(session.user.id),
-        contentId,
-        status: "pending",
+        ...(name && { name: name.trim() }),
+        ...(description !== undefined && {
+          description: description?.trim() || null,
+        }),
+        ...(status && { status }),
       },
       include: {
         content: {
@@ -94,14 +183,17 @@ export async function POST(request: NextRequest) {
             fileType: true,
           },
         },
+        _count: {
+          select: { questions: true },
+        },
       },
     });
 
-    return NextResponse.json(mcqSet);
+    return NextResponse.json(updatedMcqSet, { status: 200 });
   } catch (error) {
-    console.error("Error creating MCQ set:", error);
+    console.error("Error updating MCQ set:", error);
     return NextResponse.json(
-      { error: "Failed to create MCQ set" },
+      { error: "Failed to update MCQ set" },
       { status: 500 },
     );
   }

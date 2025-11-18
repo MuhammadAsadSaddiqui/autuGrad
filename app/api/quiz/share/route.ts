@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       quizCodes.push({
         student,
         code: quizCode.code,
-        quizUrl: `https://localhost:3000/quiz/attempt/${quizCode.code}`,
+        quizUrl: `http://localhost:3000/quiz/attempt/${quizCode.code}`,
       });
       console.log(quizCodes);
       // Send email to student

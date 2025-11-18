@@ -1,11 +1,11 @@
-// app/quiz/attempt/[code]/page.tsx (Simple Version)
+// app/quiz/attempt/[code]/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
-import { CheckCircle, XCircle, Clock, User, BookOpen } from "lucide-react";
+import { CheckCircle, XCircle, User, BookOpen } from "lucide-react";
 
 interface Question {
   id: number;
@@ -249,6 +249,9 @@ export default function SimpleQuizPage() {
   const progress =
     ((currentQuestionIndex + 1) / quizData.mcqSet.totalQuestions) * 100;
   const answeredQuestions = Object.keys(answers).length;
+  const unansweredCount = quizData.mcqSet.totalQuestions - answeredQuestions;
+  const allQuestionsAnswered =
+    answeredQuestions === quizData.mcqSet.totalQuestions;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -355,8 +358,8 @@ export default function SimpleQuizPage() {
                 </div>
                 <Button
                   onClick={submitQuiz}
-                  disabled={submitting || answeredQuestions === 0}
-                  className="bg-green-600 hover:bg-green-700"
+                  disabled={submitting || !allQuestionsAnswered}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? "Submitting..." : "Submit Quiz"}
                 </Button>
