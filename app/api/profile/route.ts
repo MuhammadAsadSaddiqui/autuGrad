@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/authUser";
 import { db } from "@/lib/db";
 
-// GET /api/profile - Get user profile
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthUser();
@@ -28,7 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       fullName: user.fullName,
       email: user.email,
-      phone: "", // You might want to add these fields to your User model
+      phone: "", 
       department: "",
       institution: "",
       createdAt: user.createdAt,
@@ -43,7 +42,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT /api/profile - Update user profile
 export async function PUT(request: NextRequest) {
   try {
     const session = await getAuthUser();
@@ -69,12 +67,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Update user profile
     const updatedUser = await db.user.update({
       where: { id: user.id },
       data: {
         fullName: fullName.trim(),
-        // Note: You might want to add phone, department, institution fields to your User model
         updatedAt: new Date(),
       },
       select: {

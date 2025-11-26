@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/authUser";
 import { db } from "@/lib/db";
 
-// GET /api/dashboard/recent-activity - Get recent activity
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthUser();
@@ -18,7 +17,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get recent activities from different sources
     const [recentContent, recentMCQSets, recentStudents] = await Promise.all([
       // Recent content uploads
       db.content.findMany({
@@ -67,10 +65,8 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    // Combine and format activities
     const activities = [];
 
-    // Add content activities
     recentContent.forEach((content) => {
       activities.push({
         id: `content-${content.id}`,
@@ -81,7 +77,6 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // Add MCQ activities
     recentMCQSets.forEach((mcqSet) => {
       let title = `MCQ generation: ${mcqSet.name}`;
       if (mcqSet.status === "completed") {
@@ -96,7 +91,6 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // Add student activities
     recentStudents.forEach((student) => {
       activities.push({
         id: `student-${student.id}`,
@@ -107,7 +101,6 @@ export async function GET(request: NextRequest) {
       });
     });
 
-    // Sort by date and take the most recent 10
     const sortedActivities = activities
       .sort(
         (a, b) =>

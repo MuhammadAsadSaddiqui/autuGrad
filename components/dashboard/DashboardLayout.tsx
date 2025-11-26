@@ -1,4 +1,3 @@
-// components/dashboard/DashboardLayout.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -92,7 +91,7 @@ export default function DashboardLayout({
       >
         <div className="flex items-center justify-between h-16 px-6 border-b">
           <div className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-gray-900">Autograd</span>
+            <span className="text-xl font-bold text-gray-900">AutoGrad</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}

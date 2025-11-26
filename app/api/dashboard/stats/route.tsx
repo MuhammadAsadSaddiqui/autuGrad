@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/authUser";
 import { db } from "@/lib/db";
 
-// GET /api/dashboard/stats - Get dashboard statistics
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthUser();
@@ -18,15 +17,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get all statistics in parallel for better performance
     const [contentStats, mcqStats, studentStats, contentByType] =
       await Promise.all([
-        // Total content count
         db.content.count({
           where: { userId: user.id },
         }),
 
-        // Total MCQs count from completed sets
         db.mCQQuestion.count({
           where: {
             mcqSet: {
@@ -35,12 +31,10 @@ export async function GET(request: NextRequest) {
           },
         }),
 
-        // Total students count
         db.student.count({
           where: { teacherId: user.id },
         }),
 
-        // Content by file type
         db.content.groupBy({
           by: ["fileType"],
           where: { userId: user.id },
@@ -50,7 +44,6 @@ export async function GET(request: NextRequest) {
         }),
       ]);
 
-    // Process content by type
     const contentTypeStats = contentByType.reduce(
       (acc, item) => {
         const type = item.fileType.toLowerCase();
@@ -79,4 +72,5 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+
 }

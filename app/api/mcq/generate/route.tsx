@@ -20,11 +20,10 @@ export async function POST(request: NextRequest) {
 
     const { db } = await import("@/lib/db");
 
-    // Verify the MCQ set exists and belongs to the user
     const mcqSet = await db.mCQSet.findFirst({
       where: {
         id: parseInt(mcqSetId),
-        userId: parseInt(session.user.id), // Add this line to check ownership
+        userId: parseInt(session.user.id), 
       },
       include: {
         content: true,
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "MCQ set not found" }, { status: 404 });
     }
 
-    // Check if MCQ set is already being processed or completed
     if (mcqSet.status === "generating") {
       return NextResponse.json(
         { error: "MCQ set is already being processed" },

@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import sendEmail from "@/lib/email.service";
 import { generateVerificationToken } from "@/lib/tokens";
 
-
 export async function verifyCode({
   email,
   code,
@@ -28,7 +27,6 @@ export async function verifyCode({
       };
     }
 
-  
     await db.user.update({
       where: { id: user.id },
       data: {
@@ -50,10 +48,8 @@ export async function verifyCode({
   }
 }
 
-// Resend verification code
 export async function resendCode({ email }: { email: string }) {
   try {
-    // Generate a new verification token (6-digit code)
     const verificationToken = generateVerificationToken();
 
     const user = await db.user.findUnique({

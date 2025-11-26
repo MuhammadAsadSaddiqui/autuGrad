@@ -1,11 +1,16 @@
-// app/quiz/attempt/[code]/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
-import { CheckCircle, XCircle, User, BookOpen } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  User,
+  BookOpen,
+  AlertCircle,
+} from "lucide-react";
 
 interface Question {
   id: number;
@@ -33,14 +38,25 @@ interface QuizData {
 
 interface QuizResult {
   score: number;
+  wrongAnswers: number;
+  unattempted: number;
   totalQuestions: number;
+  rawScore: string;
+  finalScore: string;
   scorePercentage: number;
   grade: string;
   passed: boolean;
   timeSpent: number;
+  negativeMarking: number;
+  breakdown: {
+    correct: string;
+    wrong: string;
+    unattempted: string;
+    total: string;
+  };
 }
 
-export default function SimpleQuizPage() {
+export default function SecureQuizPage() {
   const params = useParams();
   const code = params.code as string;
 
@@ -53,34 +69,58 @@ export default function SimpleQuizPage() {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [startTime] = useState(Date.now());
+  const [timeLeft, setTimeLeft] = useState<number>(0);
 
-  // Load quiz on component mount
   useEffect(() => {
+    const loadQuiz = async () => {
+      try {
+        const response = await fetch(`/api/quiz/attempt/${code}`);
+        const data = await response.json();
+        if (response.ok) {
+          setQuizData(data);
+          setTimeLeft(data.mcqSet.totalQuestions * 60);
+        } else {
+          setError(data.error || "Quiz not found");
+        }
+      } catch {
+        setError("Failed to load quiz");
+      } finally {
+        setLoading(false);
+      }
+    };
     loadQuiz();
   }, [code]);
 
-  const loadQuiz = async () => {
-    try {
-      const response = await fetch(`/api/quiz/attempt/${code}`);
-      const data = await response.json();
+  useEffect(() => {
+    if (!quizData || quizCompleted) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          submitQuiz(false); // auto-submit
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [quizData, quizCompleted]);
 
-      if (response.ok) {
-        setQuizData(data);
-      } else {
-        setError(data.error || "Quiz not found");
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.ctrlKey && ["c", "x", "s", "u"].includes(e.key.toLowerCase())) ||
+        e.key === "F12"
+      ) {
+        e.preventDefault();
       }
-    } catch (error) {
-      setError("Failed to load quiz");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleAnswerSelect = (questionId: number, answer: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: answer,
-    }));
+    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
   };
 
   const goToNextQuestion = () => {
@@ -95,8 +135,15 @@ export default function SimpleQuizPage() {
     }
   };
 
-  const submitQuiz = async () => {
-    if (!quizData) return;
+  const submitQuiz = async (manual: boolean = true) => {
+    if (!quizData || submitting || quizCompleted) return;
+
+    if (manual) {
+      const confirmSubmit = window.confirm(
+        "Are you sure you want to submit the quiz? Wrong answers will have negative marking (-0.25 marks per wrong answer).",
+      );
+      if (!confirmSubmit) return;
+    }
 
     setSubmitting(true);
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
@@ -104,16 +151,9 @@ export default function SimpleQuizPage() {
     try {
       const response = await fetch("/api/quiz/submit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code,
-          answers,
-          timeSpent,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, answers, timeSpent }),
       });
-
       const data = await response.json();
 
       if (response.ok) {
@@ -122,180 +162,90 @@ export default function SimpleQuizPage() {
       } else {
         setError(data.error || "Failed to submit quiz");
       }
-    } catch (error) {
+    } catch {
       setError("Error submitting quiz");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Loading screen
-  if (loading) {
+  if (loading)
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading quiz...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
       </div>
     );
-  }
-
-  // Error screen
-  if (error) {
+  if (error)
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="text-center p-8">
-            <XCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Error</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        {error}
       </div>
     );
-  }
-
-  // Quiz completed screen
-  if (quizCompleted && result) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl">
-          <CardHeader className="text-center">
-            <div
-              className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                result.passed ? "bg-green-100" : "bg-red-100"
-              }`}
-            >
-              {result.passed ? (
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              ) : (
-                <XCircle className="h-8 w-8 text-red-600" />
-              )}
-            </div>
-            <CardTitle className="text-2xl">
-              Quiz {result.passed ? "Completed Successfully!" : "Completed"}
-            </CardTitle>
-            <p className="text-gray-600">{quizData?.mcqSet.name}</p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {result.score}
-                </div>
-                <div className="text-sm text-blue-700">Correct</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-600">
-                  {result.totalQuestions}
-                </div>
-                <div className="text-sm text-gray-700">Total</div>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {result.scorePercentage}%
-                </div>
-                <div className="text-sm text-purple-700">Score</div>
-              </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">
-                  {result.grade}
-                </div>
-                <div className="text-sm text-orange-700">Grade</div>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h4 className="font-medium mb-2">Quiz Summary</h4>
-              <div className="text-sm text-gray-600 space-y-1">
-                <div>
-                  Time Spent: {Math.floor(result.timeSpent / 60)} minutes{" "}
-                  {result.timeSpent % 60} seconds
-                </div>
-                <div>
-                  Status:{" "}
-                  <span
-                    className={
-                      result.passed ? "text-green-600" : "text-red-600"
-                    }
-                  >
-                    {result.passed ? "Passed" : "Failed"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <Button onClick={() => window.close()} variant="outline">
-                Close Quiz
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Main quiz interface
   if (!quizData) return null;
 
   const currentQuestion = quizData.mcqSet.questions[currentQuestionIndex];
-  const progress =
-    ((currentQuestionIndex + 1) / quizData.mcqSet.totalQuestions) * 100;
   const answeredQuestions = Object.keys(answers).length;
-  const unansweredCount = quizData.mcqSet.totalQuestions - answeredQuestions;
-  const allQuestionsAnswered =
-    answeredQuestions === quizData.mcqSet.totalQuestions;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className="min-h-screen bg-gray-50 select-none"
+      onContextMenu={(e) => e.preventDefault()}
+      onCopy={(e) => e.preventDefault()}
+      onCut={(e) => e.preventDefault()}
+    >
       {/* Header */}
       <div className="bg-white border-b p-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <User className="h-5 w-5 text-blue-600" />
-              <span className="font-medium">{quizData.student.name}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <BookOpen className="h-5 w-5 text-green-600" />
-              <span>{quizData.mcqSet.name}</span>
-            </div>
+            <User className="h-5 w-5 text-blue-600" />
+            <span className="font-medium">{quizData.student.name}</span>
           </div>
-          <div className="text-sm text-gray-600">
-            Question {currentQuestionIndex + 1} of{" "}
-            {quizData.mcqSet.totalQuestions}
+          <div className="flex items-center space-x-4">
+            <BookOpen className="h-5 w-5 text-green-600" />
+            <span className="font-medium">{quizData.mcqSet.name}</span>
+          </div>
+          <div className="text-sm font-semibold text-gray-700">
+            Time: {Math.floor(timeLeft / 60)}:
+            {String(timeLeft % 60).padStart(2, "0")}
           </div>
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="bg-gray-200 h-2">
-        <div
-          className="bg-blue-600 h-2 transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        ></div>
-      </div>
+      {!quizCompleted && (
+        <div className="max-w-4xl mx-auto mt-4 px-6">
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-yellow-400 mr-2" />
+              <div className="text-sm">
+                <p className="font-semibold text-yellow-800">
+                  Negative Marking Applied
+                </p>
+                <p className="text-yellow-700">
+                  Correct: +1 mark | Wrong: -0.25 marks | Unattempted: 0 marks
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Question Area */}
       <div className="max-w-4xl mx-auto p-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">
-              Question {currentQuestionIndex + 1}
-            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>
+                Question {currentQuestionIndex + 1} of{" "}
+                {quizData.mcqSet.totalQuestions}
+              </CardTitle>
+              <div className="text-sm text-gray-600">
+                Answered: {answeredQuestions}/{quizData.mcqSet.totalQuestions}
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-lg leading-relaxed">
+          <CardContent className="space-y-4">
+            <div className="text-lg font-medium">
               {currentQuestion.question}
             </div>
-
             <div className="grid gap-3">
               {[
                 { key: "A", text: currentQuestion.optionA },
@@ -308,13 +258,14 @@ export default function SimpleQuizPage() {
                   onClick={() =>
                     handleAnswerSelect(currentQuestion.id, option.key)
                   }
-                  className={`p-4 text-left rounded-lg border-2 transition-all ${
+                  disabled={quizCompleted}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${
                     answers[currentQuestion.id] === option.key
-                      ? "border-blue-500 bg-blue-50"
+                      ? "border-blue-500 bg-blue-50 shadow-md"
                       : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold ${
                         answers[currentQuestion.id] === option.key
@@ -330,12 +281,11 @@ export default function SimpleQuizPage() {
               ))}
             </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between items-center pt-6 border-t">
+            <div className="flex justify-between items-center pt-4 border-t">
               <div className="flex space-x-2">
                 <Button
                   onClick={goToPreviousQuestion}
-                  disabled={currentQuestionIndex === 0}
+                  disabled={currentQuestionIndex === 0 || quizCompleted}
                   variant="outline"
                 >
                   Previous
@@ -343,23 +293,19 @@ export default function SimpleQuizPage() {
                 <Button
                   onClick={goToNextQuestion}
                   disabled={
-                    currentQuestionIndex === quizData.mcqSet.totalQuestions - 1
+                    currentQuestionIndex ===
+                      quizData.mcqSet.questions.length - 1 || quizCompleted
                   }
                   variant="outline"
                 >
                   Next
                 </Button>
               </div>
-
-              <div className="text-center">
-                <div className="text-sm text-gray-600 mb-2">
-                  {answeredQuestions} of {quizData.mcqSet.totalQuestions}{" "}
-                  answered
-                </div>
+              <div>
                 <Button
-                  onClick={submitQuiz}
-                  disabled={submitting || !allQuestionsAnswered}
-                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => submitQuiz(true)}
+                  disabled={submitting || quizCompleted}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                 >
                   {submitting ? "Submitting..." : "Submit Quiz"}
                 </Button>
@@ -367,7 +313,149 @@ export default function SimpleQuizPage() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="mt-4 grid grid-cols-10 gap-2">
+          {quizData.mcqSet.questions.map((q, idx) => (
+            <button
+              key={q.id}
+              onClick={() => setCurrentQuestionIndex(idx)}
+              disabled={quizCompleted}
+              className={`h-10 rounded text-sm font-medium transition-all ${
+                idx === currentQuestionIndex
+                  ? "bg-blue-600 text-white ring-2 ring-blue-300"
+                  : answers[q.id]
+                    ? "bg-green-100 text-green-800 border border-green-300"
+                    : "bg-gray-100 text-gray-600 border border-gray-300"
+              }`}
+            >
+              {idx + 1}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {quizCompleted && result && (
+        <div className="fixed inset-0 bg-gray-50 flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-3xl my-8">
+            <CardHeader className="text-center">
+              <div
+                className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${result.passed ? "bg-green-100" : "bg-red-100"}`}
+              >
+                {result.passed ? (
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                ) : (
+                  <XCircle className="h-8 w-8 text-red-600" />
+                )}
+              </div>
+              <CardTitle className="text-2xl">
+                Quiz {result.passed ? "Passed!" : "Completed"}
+              </CardTitle>
+              <p className="text-gray-600 mt-2">Your performance summary</p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="text-3xl font-bold text-green-600">
+                    {result.score}
+                  </div>
+                  <div className="text-sm text-green-700 font-medium">
+                    Correct
+                  </div>
+                </div>
+                <div className="text-center bg-red-50 p-4 rounded-lg border border-red-200">
+                  <div className="text-3xl font-bold text-red-600">
+                    {result.wrongAnswers}
+                  </div>
+                  <div className="text-sm text-red-700 font-medium">Wrong</div>
+                </div>
+                <div className="text-center bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="text-3xl font-bold text-gray-600">
+                    {result.unattempted}
+                  </div>
+                  <div className="text-sm text-gray-700 font-medium">
+                    Unattempted
+                  </div>
+                </div>
+                <div className="text-center bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="text-3xl font-bold text-blue-600">
+                    {result.grade}
+                  </div>
+                  <div className="text-sm text-blue-700 font-medium">Grade</div>
+                </div>
+              </div>
+
+              {/* Score Calculation */}
+              <div className="bg-white border rounded-lg p-4">
+                <h3 className="font-semibold text-lg mb-3">
+                  Score Calculation
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-gray-700">
+                      {result.breakdown.correct}
+                    </span>
+                    <span className="font-medium text-green-600">
+                      +{result.score}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-gray-700">
+                      {result.breakdown.wrong}
+                    </span>
+                    <span className="font-medium text-red-600">
+                      -
+                      {(result.wrongAnswers * result.negativeMarking).toFixed(
+                        2,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-gray-700">
+                      {result.breakdown.unattempted}
+                    </span>
+                    <span className="font-medium text-gray-600">0</span>
+                  </div>
+                  <div className="flex justify-between items-center py-3 bg-blue-50 px-3 rounded mt-2">
+                    <span className="font-semibold text-blue-900">
+                      {result.breakdown.total}
+                    </span>
+                    <span className="font-bold text-xl text-blue-600">
+                      {result.scorePercentage}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-gray-600">Time Taken</p>
+                  <p className="font-semibold text-lg">
+                    {Math.floor(result.timeSpent / 60)}m {result.timeSpent % 60}
+                    s
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-gray-600">Negative Marking</p>
+                  <p className="font-semibold text-lg">
+                    -{result.negativeMarking} per wrong
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-center pt-4">
+                <Button
+                  onClick={() => window.close()}
+                  variant="outline"
+                  className="px-8"
+                >
+                  Close Quiz
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

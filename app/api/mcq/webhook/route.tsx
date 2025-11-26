@@ -20,7 +20,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the MCQ set
     const mcqSet = await db.mCQSet.findUnique({
       where: { id: mcq_set_id },
       include: { content: true },
@@ -31,7 +30,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (success && mcqs && Array.isArray(mcqs)) {
-      // Validate and prepare MCQ questions for database
       const validMcqs = mcqs.filter(
         (mcq) =>
           mcq.question &&
@@ -43,7 +41,6 @@ export async function POST(request: NextRequest) {
       );
 
       if (validMcqs.length === 0) {
-        // No valid MCQs found, mark as failed
         await db.mCQSet.update({
           where: { id: mcq_set_id },
           data: {
@@ -57,7 +54,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Prepare questions for database insertion
       const questions = validMcqs.map((mcq: any) => ({
         question: mcq.question.trim(),
         optionA: mcq.options[0].trim(),
@@ -68,13 +64,10 @@ export async function POST(request: NextRequest) {
         mcqSetId: mcq_set_id,
       }));
 
-      // Store MCQs in database using transaction
       await db.$transaction([
-        // Insert all MCQ questions
         db.mCQQuestion.createMany({
           data: questions,
         }),
-        // Update MCQ set status
         db.mCQSet.update({
           where: { id: mcq_set_id },
           data: {
@@ -82,7 +75,6 @@ export async function POST(request: NextRequest) {
             totalQuestions: validMcqs.length,
           },
         }),
-        // Update content MCQ count
         db.content.update({
           where: { id: mcqSet.contentId },
           data: {
@@ -105,7 +97,6 @@ export async function POST(request: NextRequest) {
         mcqSetId: mcq_set_id,
       });
     } else {
-      // Generation failed
       await db.mCQSet.update({
         where: { id: mcq_set_id },
         data: {
@@ -124,7 +115,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Webhook processing error:", error);
 
-    // Try to update MCQ set status to failed if we have the ID
     const body = await request.json().catch(() => ({}));
     if (body.mcq_set_id) {
       try {

@@ -254,21 +254,21 @@ export default function ShareQuizModal({
               </div>
 
               {/* Quiz Instructions */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h4 className="font-medium text-yellow-800 mb-2">
-                  Quiz Instructions for Students:
-                </h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  <li>
-                    • Each student will receive a unique quiz code via email
-                  </li>
-                  <li>
-                    • Quiz codes are valid for 7 days and can only be used once
-                  </li>
-                  <li>• Each question has a 1-minute time limit</li>
-                  <li>• Students must complete the quiz in one session</li>
-                </ul>
-              </div>
+              {/*<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">*/}
+              {/*  <h4 className="font-medium text-yellow-800 mb-2">*/}
+              {/*    Quiz Instructions for Students:*/}
+              {/*  </h4>*/}
+              {/*  <ul className="text-sm text-yellow-700 space-y-1">*/}
+              {/*    <li>*/}
+              {/*      • Each student will receive a unique quiz code via email*/}
+              {/*    </li>*/}
+              {/*    <li>*/}
+              {/*      • Quiz codes are valid for 7 days and can only be used once*/}
+              {/*    </li>*/}
+              {/*    <li>• Each question has a 1-minute time limit</li>*/}
+              {/*    <li>• Students must complete the quiz in one session</li>*/}
+              {/*  </ul>*/}
+              {/*</div>*/}
 
               {/* Action Buttons */}
               <div className="flex justify-end space-x-2 pt-4 border-t">

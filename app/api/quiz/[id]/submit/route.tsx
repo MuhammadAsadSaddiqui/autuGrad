@@ -57,13 +57,25 @@ export async function POST(
       orderBy: { id: "asc" },
     });
 
+    // Calculate scores with negative marking
     let correctAnswers = 0;
+    let wrongAnswers = 0;
+    let unattempted = 0;
     const detailedResults = questions.map((question) => {
       const userAnswer = answers[question.id];
-      const isCorrect = userAnswer === question.answer;
+      let isCorrect = false;
+      let status = "unattempted";
 
-      if (isCorrect) {
+      if (!userAnswer) {
+        unattempted++;
+        status = "unattempted";
+      } else if (userAnswer === question.answer) {
         correctAnswers++;
+        isCorrect = true;
+        status = "correct";
+      } else {
+        wrongAnswers++;
+        status = "wrong";
       }
 
       return {
@@ -78,11 +90,22 @@ export async function POST(
         correctAnswer: question.answer,
         userAnswer: userAnswer || null,
         isCorrect,
+        status,
       };
     });
 
     const totalQuestions = questions.length;
-    const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100);
+
+    // Calculate score with negative marking
+    // Correct answer: +1 mark
+    // Wrong answer: -0.25 marks (negative marking)
+    // Unattempted: 0 marks
+    const NEGATIVE_MARKING = 0.25;
+    const rawScore = correctAnswers - wrongAnswers * NEGATIVE_MARKING;
+    const finalScore = Math.max(0, rawScore); // Score cannot be negative
+
+    // Calculate percentage based on total questions
+    const scorePercentage = Math.round((finalScore / totalQuestions) * 100);
 
     let grade = "F";
     if (scorePercentage >= 90) grade = "A";
@@ -108,15 +131,26 @@ export async function POST(
       success: true,
       attemptId: quizAttempt.id,
       results: {
-        score: correctAnswers,
-        totalQuestions: totalQuestions,
-        scorePercentage: scorePercentage,
-        grade: grade,
-        timeSpent: timeSpent,
+        correctAnswers,
+        wrongAnswers,
+        unattempted,
+        totalQuestions,
+        rawScore: rawScore.toFixed(2),
+        finalScore: finalScore.toFixed(2),
+        scorePercentage,
+        grade,
+        timeSpent,
         quizName: mcqSet.name,
         contentTitle: mcqSet.content.title,
-        detailedResults: detailedResults,
+        detailedResults,
         passed: scorePercentage >= 60,
+        negativeMarking: NEGATIVE_MARKING,
+        breakdown: {
+          correct: `${correctAnswers} × 1 = ${correctAnswers}`,
+          wrong: `${wrongAnswers} × (-${NEGATIVE_MARKING}) = -${(wrongAnswers * NEGATIVE_MARKING).toFixed(2)}`,
+          unattempted: `${unattempted} × 0 = 0`,
+          total: `Final Score: ${finalScore.toFixed(2)}/${totalQuestions}`,
+        },
       },
     });
   } catch (error) {

@@ -125,6 +125,7 @@ export default function QuizResultsModal({
         document.body.removeChild(a);
       }
     } catch (error) {
+      z;
       console.error("Error exporting results:", error);
     }
   };
@@ -209,14 +210,6 @@ export default function QuizResultsModal({
               >
                 <Download className="h-4 w-4 mr-1" />
                 Export CSV
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => exportResults("pdf")}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Export PDF
               </Button>
               <Button variant="outline" size="sm" onClick={onClose}>
                 Close

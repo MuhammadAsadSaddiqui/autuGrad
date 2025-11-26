@@ -1,3 +1,4 @@
+// app/api/quiz/submit/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
@@ -49,18 +50,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate score
+    // Calculate scores with negative marking
     let correctAnswers = 0;
+    let wrongAnswers = 0;
+    let unattempted = 0;
     const totalQuestions = quizCode.mcqSet.questions.length;
 
+    // Calculate correct, wrong, and unattempted answers
     for (const question of quizCode.mcqSet.questions) {
       const studentAnswer = answers[question.id];
-      if (studentAnswer === question.answer) {
+
+      if (!studentAnswer) {
+        // Question was not attempted
+        unattempted++;
+      } else if (studentAnswer === question.answer) {
+        // Correct answer
         correctAnswers++;
+      } else {
+        // Wrong answer
+        wrongAnswers++;
       }
     }
 
-    const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100);
+    // Calculate score with negative marking
+    // Correct answer: +1 mark
+    // Wrong answer: -0.25 marks (negative marking)
+    // Unattempted: 0 marks
+    const NEGATIVE_MARKING = 0.25;
+    const rawScore = correctAnswers - wrongAnswers * NEGATIVE_MARKING;
+    const finalScore = Math.max(0, rawScore); // Score cannot be negative
+
+    // Calculate percentage based on total questions
+    const scorePercentage = Math.round((finalScore / totalQuestions) * 100);
+
     const grade =
       scorePercentage >= 80
         ? "A"
@@ -88,6 +110,8 @@ export async function POST(request: NextRequest) {
         passed,
       },
     });
+
+    // Mark quiz code as used
     await db.quizCode.update({
       where: { id: quizCode.id },
       data: { isUsed: true, usedAt: new Date() },
@@ -104,11 +128,22 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       score: correctAnswers,
+      wrongAnswers,
+      unattempted,
       totalQuestions,
+      rawScore: rawScore.toFixed(2),
+      finalScore: finalScore.toFixed(2),
       scorePercentage,
       grade,
       passed,
       timeSpent,
+      negativeMarking: NEGATIVE_MARKING,
+      breakdown: {
+        correct: `${correctAnswers} × 1 = ${correctAnswers}`,
+        wrong: `${wrongAnswers} × (-${NEGATIVE_MARKING}) = -${(wrongAnswers * NEGATIVE_MARKING).toFixed(2)}`,
+        unattempted: `${unattempted} × 0 = 0`,
+        total: `Final Score: ${finalScore.toFixed(2)}/${totalQuestions}`,
+      },
     });
   } catch (error) {
     console.error("Error submitting quiz:", error);

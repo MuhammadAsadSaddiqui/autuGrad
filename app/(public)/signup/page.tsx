@@ -38,7 +38,6 @@ export default function Home() {
           </h2>
         </CardHeader>
         <CardContent>
-          {/* Signup Step */}
           {verificationStep === "signup" && (
             <Form {...form}>
               <form
